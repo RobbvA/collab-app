@@ -1,23 +1,7 @@
 // app/dashboard/page.jsx
 import DashboardSection from "../../components/Dashboard/DashboardSection";
 import DashboardListItem from "../../components/Dashboard/DashboardListItem";
-
-const MOCK_PRS_TO_REVIEW = [
-  {
-    id: 1,
-    title: "Refactor auth middleware",
-    repo: "acme/api-server",
-    author: "jane-doe",
-    updatedAt: "2 hours ago",
-  },
-  {
-    id: 2,
-    title: "Improve dashboard loading state",
-    repo: "acme/web-app",
-    author: "teammate42",
-    updatedAt: "5 hours ago",
-  },
-];
+import { getPullsToReview } from "../../lib/github/dashboard";
 
 const MOCK_ASSIGNED_ISSUES = [
   {
@@ -51,7 +35,10 @@ const MOCK_RECENT_MERGES = [
   },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  // 🔹 Haal PR-data op via de dashboard data layer (nu nog mock in lib/github/dashboard.ts)
+  const pullsToReview = await getPullsToReview();
+
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
@@ -65,39 +52,39 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* PRs */}
+        {/* PRs – nu via getPullsToReview() */}
         <DashboardSection
           title="Pull requests waiting for your review"
-          count={MOCK_PRS_TO_REVIEW.length}
+          count={pullsToReview.length}
           defaultOpen={true}
         >
-          {MOCK_PRS_TO_REVIEW.length === 0 ? (
+          {pullsToReview.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               No pull requests waiting. ✨
             </p>
           ) : (
             <ul className="divide-y divide-neutral-800">
-              {MOCK_PRS_TO_REVIEW.map((pr) => (
+              {pullsToReview.map((pr) => (
                 <DashboardListItem
                   key={pr.id}
                   title={pr.title}
                   metaLeft={
                     <>
                       <span className="rounded-full border border-neutral-700 px-2 py-0.5">
-                        {pr.repo}
+                        {pr.owner}/{pr.repo}
                       </span>
                       <span>•</span>
-                      <span>by {pr.author}</span>
+                      <span>by {pr.author.login}</span>
                     </>
                   }
-                  metaRight={pr.updatedAt}
+                  metaRight={new Date(pr.updatedAt).toLocaleDateString()}
                 />
               ))}
             </ul>
           )}
         </DashboardSection>
 
-        {/* Issues */}
+        {/* Issues – nog mock data */}
         <DashboardSection
           title="Issues assigned to you"
           count={MOCK_ASSIGNED_ISSUES.length}
@@ -128,7 +115,7 @@ export default function DashboardPage() {
           )}
         </DashboardSection>
 
-        {/* Merges */}
+        {/* Merges – nog mock data */}
         <DashboardSection
           title="Recently merged by you"
           count={MOCK_RECENT_MERGES.length}
