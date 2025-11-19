@@ -2,6 +2,7 @@
 import DashboardSection from "../../components/Dashboard/DashboardSection";
 import DashboardListItem from "../../components/Dashboard/DashboardListItem";
 import { getPullsToReview } from "../../lib/github/dashboard";
+import { AuthStatus } from "../../components/AuthStatus";
 
 const MOCK_ASSIGNED_ISSUES = [
   {
@@ -42,6 +43,11 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+        {/* Auth status (login/logout) */}
+        <div className="flex justify-end">
+          <AuthStatus />
+        </div>
+
         {/* Header */}
         <header className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">
