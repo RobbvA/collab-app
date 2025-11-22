@@ -1,44 +1,35 @@
 // app/dashboard/page.jsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "../api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+
 import DashboardSection from "../../components/Dashboard/DashboardSection";
 import DashboardListItem from "../../components/Dashboard/DashboardListItem";
-import { getPullsToReview } from "../../lib/github/dashboard";
+import {
+  getPullsToReview,
+  getAssignedIssues,
+  getRecentlyMerged,
+} from "../../lib/github/dashboard";
 import { AuthStatus } from "../../components/AuthStatus";
 
-const MOCK_ASSIGNED_ISSUES = [
-  {
-    id: 101,
-    title: "Fix flaky E2E test for login flow",
-    repo: "acme/web-app",
-    priority: "High",
-    updatedAt: "1 day ago",
-  },
-  {
-    id: 102,
-    title: "Update README for API rate limits",
-    repo: "acme/api-server",
-    priority: "Medium",
-    updatedAt: "3 days ago",
-  },
-];
-
-const MOCK_RECENT_MERGES = [
-  {
-    id: 201,
-    title: "Add skeleton loaders to dashboard",
-    repo: "acme/web-app",
-    mergedAt: "Yesterday",
-  },
-  {
-    id: 202,
-    title: "Optimize database indexes for reports",
-    repo: "acme/api-server",
-    mergedAt: "2 days ago",
-  },
-];
-
 export default async function DashboardPage() {
-  // 🔹 Haal PR-data op via de dashboard data layer (nu nog mock in lib/github/dashboard.ts)
-  const pullsToReview = await getPullsToReview();
+  // 🔹 1. Haal de session op via NextAuth (server-side)
+  const session = await getServerSession(authOptions);
+
+  // 🔹 2. Als er geen session is: redirect naar login
+  if (!session) {
+    redirect("/api/auth/signin");
+  }
+
+  // 🔹 3. Access token klaarzetten voor gebruik met de GitHub API
+  const accessToken = session.accessToken;
+
+  // 🔹 4. Haal data op via de dashboard data layer – nu met echte GitHub token
+  const [pullsToReview, assignedIssues, recentlyMerged] = await Promise.all([
+    getPullsToReview(accessToken),
+    getAssignedIssues(accessToken),
+    getRecentlyMerged(accessToken),
+  ]);
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
@@ -58,7 +49,7 @@ export default async function DashboardPage() {
           </p>
         </header>
 
-        {/* PRs – nu via getPullsToReview() */}
+        {/* PRs – echte data via getPullsToReview(accessToken) */}
         <DashboardSection
           title="Pull requests waiting for your review"
           count={pullsToReview.length}
@@ -90,54 +81,60 @@ export default async function DashboardPage() {
           )}
         </DashboardSection>
 
-        {/* Issues – nog mock data */}
+        {/* Issues – echte data via getAssignedIssues(accessToken) */}
         <DashboardSection
           title="Issues assigned to you"
-          count={MOCK_ASSIGNED_ISSUES.length}
+          count={assignedIssues.length}
         >
-          {MOCK_ASSIGNED_ISSUES.length === 0 ? (
+          {assignedIssues.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               No assigned issues. 🧘
             </p>
           ) : (
             <ul className="divide-y divide-neutral-800">
-              {MOCK_ASSIGNED_ISSUES.map((issue) => (
+              {assignedIssues.map((issue) => (
                 <DashboardListItem
                   key={issue.id}
                   title={issue.title}
                   metaLeft={
                     <>
-                      <span>{issue.repo}</span>
+                      <span>
+                        {issue.owner}/{issue.repo}
+                      </span>
                       <span>•</span>
                       <span className="rounded-full border border-neutral-700 px-2 py-0.5">
-                        {issue.priority}
+                        {issue.labels[0] ?? "Issue"}
                       </span>
                     </>
                   }
-                  metaRight={issue.updatedAt}
+                  metaRight={new Date(issue.updatedAt).toLocaleDateString()}
                 />
               ))}
             </ul>
           )}
         </DashboardSection>
 
-        {/* Merges – nog mock data */}
+        {/* Recently merged – echte data via getRecentlyMerged(accessToken) */}
         <DashboardSection
           title="Recently merged by you"
-          count={MOCK_RECENT_MERGES.length}
+          count={recentlyMerged.length}
         >
-          {MOCK_RECENT_MERGES.length === 0 ? (
+          {recentlyMerged.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               Nothing merged yet. 🚀
             </p>
           ) : (
             <ul className="divide-y divide-neutral-800">
-              {MOCK_RECENT_MERGES.map((pr) => (
+              {recentlyMerged.map((pr) => (
                 <DashboardListItem
                   key={pr.id}
                   title={pr.title}
-                  metaLeft={<span>{pr.repo}</span>}
-                  metaRight={pr.mergedAt}
+                  metaLeft={
+                    <span>
+                      {pr.owner}/{pr.repo}
+                    </span>
+                  }
+                  metaRight={new Date(pr.mergedAt).toLocaleDateString()}
                 />
               ))}
             </ul>

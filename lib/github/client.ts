@@ -2,19 +2,27 @@
 /**
  * Simple GitHub API fetch helper.
  *
- * Reads GITHUB_TOKEN from .env.local (process.env.GITHUB_TOKEN).
+ * Primary use:
+ *   - Use the logged-in user's access token from NextAuth.
+ *
+ * Fallback:
+ *   - If no token is passed, falls back to GITHUB_TOKEN from .env.local
+ *
  * Usage:
- *   const data = await githubFetch('/repos/owner/repo', { method: 'GET' });
+ *   const data = await githubFetch('/repos/owner/repo', { method: 'GET' }, accessToken);
  */
 
 export async function githubFetch<T = unknown>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  accessToken?: string
 ): Promise<T> {
-  const token = process.env.GITHUB_TOKEN;
+  // Prefer the user-specific accessToken from NextAuth
+  const token = accessToken ?? process.env.GITHUB_TOKEN;
+
   if (!token) {
     throw new Error(
-      "GITHUB_TOKEN environment variable is required. Add it to .env.local."
+      "GitHub access token is required. Pass a user token to githubFetch or set GITHUB_TOKEN in .env.local."
     );
   }
 
@@ -28,7 +36,8 @@ export async function githubFetch<T = unknown>(
 
   // Auth header
   if (!headers.has("Authorization")) {
-    headers.set("Authorization", `token ${token}`);
+    // GitHub ondersteunt zowel "token" als "Bearer"
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   if (!headers.has("Accept")) {
