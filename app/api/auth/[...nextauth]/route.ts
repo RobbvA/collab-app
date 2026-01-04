@@ -17,6 +17,12 @@ export const authOptions: NextAuthOptions = {
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID ?? "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+      // Request full repo scope so server-side endpoints can create comments
+      authorization: {
+        params: {
+          scope: "repo",
+        },
+      },
     }),
   ],
   callbacks: {
