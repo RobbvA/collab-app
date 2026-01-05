@@ -22,6 +22,7 @@ export default function DashboardListItem({
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [commentCount, setCommentCount] = useState(null);
   const router = useRouter();
 
   async function handleSubmit(e) {
@@ -55,6 +56,37 @@ export default function DashboardListItem({
     }
   }
 
+  // Fetch comment count via server endpoint (cached in sessionStorage)
+  React.useEffect(() => {
+    if (!owner || !repo || !number) return;
+    const key = `commentCount:${owner}:${repo}:${number}`;
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      try {
+        setCommentCount(Number(cached));
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    let mounted = true;
+    fetch(`/api/github/issue?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&number=${encodeURIComponent(number)}`)
+      .then((r) => r.json())
+      .then((payload) => {
+        if (!mounted) return;
+        if (payload && typeof payload.comments === 'number') {
+          setCommentCount(payload.comments);
+          try { sessionStorage.setItem(key, String(payload.comments)); } catch {}
+        }
+      })
+      .catch(() => {
+        // silently ignore network errors for badge
+      });
+
+    return () => { mounted = false; };
+  }, [owner, repo, number]);
+
   return (
     <li className="px-4 py-3 text-xs hover:bg-neutral-900 cursor-pointer transition-colors">
       <div className="flex flex-col gap-1">
@@ -69,15 +101,38 @@ export default function DashboardListItem({
             {/* Comment toggle (only if we have owner/repo/number) */}
             {owner && repo && number && (
               <button
-                className="ml-2 text-[11px] text-neutral-400 hover:text-neutral-200"
+                className="ml-2 text-neutral-400 hover:text-neutral-200 flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   setError(null);
                   setOpenComposer(open ? null : id);
                 }}
                 aria-expanded={open}
+                aria-label={open ? 'Close comment composer' : 'Open comment composer'}
+                title={open ? 'Close comment' : 'Add comment'}
               >
-                Comment
+                {/* comment bubble icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-[11px]"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="sr-only">Comment</span>
+                {commentCount != null && (
+                  <span className="ml-1 inline-flex items-center justify-center rounded-full bg-neutral-700 px-2 py-0.5 text-[10px] text-neutral-200">
+                    {commentCount}
+                  </span>
+                )}
               </button>
             )}
           </div>
