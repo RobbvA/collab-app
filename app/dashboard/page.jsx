@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import DashboardSection from "../../components/Dashboard/DashboardSection";
 import DashboardListItem from "../../components/Dashboard/DashboardListItem";
+import { CommentProvider } from "../../components/Dashboard/CommentProvider";
 import {
   getPullsToReview,
   getAssignedIssues,
@@ -50,11 +51,12 @@ export default async function DashboardPage() {
         </header>
 
         {/* PRs – echte data via getPullsToReview(accessToken) */}
-        <DashboardSection
-          title="Pull requests waiting for your review"
-          count={pullsToReview.length}
-          defaultOpen={true}
-        >
+        <CommentProvider>
+          <DashboardSection
+            title="Pull requests waiting for your review"
+            count={pullsToReview.length}
+            defaultOpen={true}
+          >
           {pullsToReview.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               No pull requests waiting. ✨
@@ -75,17 +77,21 @@ export default async function DashboardPage() {
                     </>
                   }
                   metaRight={new Date(pr.updatedAt).toLocaleDateString()}
+                  owner={pr.owner}
+                  repo={pr.repo}
+                  number={pr.number}
+                  itemType="pr"
                 />
               ))}
             </ul>
           )}
-        </DashboardSection>
+          </DashboardSection>
 
         {/* Issues – echte data via getAssignedIssues(accessToken) */}
-        <DashboardSection
-          title="Issues assigned to you"
-          count={assignedIssues.length}
-        >
+          <DashboardSection
+            title="Issues assigned to you"
+            count={assignedIssues.length}
+          >
           {assignedIssues.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               No assigned issues. 🧘
@@ -108,17 +114,21 @@ export default async function DashboardPage() {
                     </>
                   }
                   metaRight={new Date(issue.updatedAt).toLocaleDateString()}
+                  owner={issue.owner}
+                  repo={issue.repo}
+                  number={issue.number}
+                  itemType="issue"
                 />
               ))}
             </ul>
           )}
-        </DashboardSection>
+          </DashboardSection>
 
         {/* Recently merged – echte data via getRecentlyMerged(accessToken) */}
-        <DashboardSection
-          title="Recently merged by you"
-          count={recentlyMerged.length}
-        >
+          <DashboardSection
+            title="Recently merged by you"
+            count={recentlyMerged.length}
+          >
           {recentlyMerged.length === 0 ? (
             <p className="px-4 py-3 text-xs text-neutral-500">
               Nothing merged yet. 🚀
@@ -139,7 +149,8 @@ export default async function DashboardPage() {
               ))}
             </ul>
           )}
-        </DashboardSection>
+          </DashboardSection>
+        </CommentProvider>
       </div>
     </main>
   );

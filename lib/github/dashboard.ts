@@ -38,6 +38,7 @@ export type PullRequest = {
 
 export type AssignedIssue = {
   id: string;
+  number: number;
   title: string;
   repo: string;
   owner: string;
@@ -182,6 +183,7 @@ export async function getAssignedIssues(
 
       return {
         id: String(item.id),
+        number: item.number,
         title: item.title,
         repo,
         owner,
