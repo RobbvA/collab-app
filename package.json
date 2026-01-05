@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test": "vitest",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "husky install",
+    "check-secrets": "bash scripts/check-secrets.sh"
   },
   "dependencies": {
     "next": "16.0.3",
@@ -22,6 +25,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1.6.1",
+    "husky": "^8.0.3"
   }
 }
