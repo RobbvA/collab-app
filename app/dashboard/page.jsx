@@ -16,8 +16,9 @@ import { AuthStatus } from "../../components/AuthStatus";
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
+  // ✅ Route via custom sign-in page (consistent UX)
   if (!session) {
-    redirect("/api/auth/signin");
+    redirect("/signin");
   }
 
   const accessToken = session.accessToken;
@@ -79,7 +80,7 @@ export default async function DashboardPage() {
               >
                 {pullsToReview.length === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
-                    No pull requests waiting. ✨
+                    No pull requests waiting.
                   </p>
                 ) : (
                   <ul className="divide-y divide-neutral-800">
@@ -113,7 +114,7 @@ export default async function DashboardPage() {
               >
                 {assignedIssues.length === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
-                    No assigned issues. 🧘
+                    No assigned issues.
                   </p>
                 ) : (
                   <ul className="divide-y divide-neutral-800">
@@ -151,7 +152,7 @@ export default async function DashboardPage() {
               >
                 {recentlyMerged.length === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
-                    Nothing merged yet. 🚀
+                    Nothing merged yet.
                   </p>
                 ) : (
                   <ul className="divide-y divide-neutral-800">
