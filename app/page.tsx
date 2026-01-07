@@ -231,7 +231,7 @@ export default function HomePage() {
   );
 }
 
-function MockCard({ title }) {
+function MockCard({ title }: { title: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
       <div className="flex items-start justify-between gap-3">
