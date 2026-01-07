@@ -12,7 +12,7 @@
     "check-secrets": "bash scripts/check-secrets.sh"
   },
   "dependencies": {
-    "next": "16.0.3",
+    "next": "^16.0.10",
     "next-auth": "^4.24.13",
     "react": "19.2.0",
     "react-dom": "19.2.0"
@@ -24,9 +24,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "husky": "^8.0.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^1.6.1",
-    "husky": "^8.0.3"
+    "vitest": "^1.6.1"
   }
 }
