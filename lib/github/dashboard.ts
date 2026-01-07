@@ -4,6 +4,7 @@
  * Real implementation of:
  * - getPullsToReview(accessToken)
  * - getAssignedIssues(accessToken)
+ * - getRecentlyMerged(accessToken)
  */
 
 import githubFetch from "./client";
@@ -48,7 +49,7 @@ export type AssignedIssue = {
   state: "open" | "closed";
 };
 
-// 🔹 Types voor GitHub Search Issues API (PR reviews)
+// --- GitHub Search Issues API types ---
 
 type GitHubUser = {
   login: string;
@@ -92,15 +93,14 @@ export async function getPullsToReview(
 ): Promise<PullRequest[]> {
   try {
     const response = await githubFetch<GitHubSearchIssuesResponse>(
-      "/search/issues?q=is:pr+review-requested:@me+state:open",
+      "/search/issues?q=is:pr+review-requested:@me+state:open&per_page=10",
       { method: "GET" },
       accessToken
     );
 
     const items = response.items ?? [];
 
-    const pulls: PullRequest[] = items.map((item) => {
-      // repository_url is like: https://api.github.com/repos/owner/repo
+    return items.map((item) => {
       const repoFull = item.repository_url.replace(
         "https://api.github.com/repos/",
         ""
@@ -123,7 +123,7 @@ export async function getPullsToReview(
           avatarUrl: item.user.avatar_url,
           htmlUrl: item.user.html_url,
         },
-        reviewers: [], // later kunnen we dit uitbreiden
+        reviewers: [],
         labels: item.labels.map((label) => label.name),
         state: item.state === "open" ? "open" : "closed",
         isDraft: Boolean(item.draft),
@@ -133,41 +133,24 @@ export async function getPullsToReview(
         deletions: undefined,
       };
     });
-
-    return pulls;
   } catch (error) {
     console.error("Error fetching pulls to review from GitHub:", error);
     return [];
   }
 }
 
-// 🔹 Types voor /issues endpoint (assigned issues)
-
-type GitHubIssue = {
-  id: number;
-  title: string;
-  html_url: string;
-  repository_url: string;
-  updated_at: string;
-  state: "open" | "closed";
-  labels: GitHubLabel[];
-};
-
 /**
  * getAssignedIssues
  *
- * Uses:
- *   GET /issues?filter=assigned&state=open
- *
- * Returns all open issues assigned to the authenticated user.
+ * Uses the GitHub Search API:
+ *   GET /search/issues?q=is:issue+assignee:@me+state:open
  */
 export async function getAssignedIssues(
   accessToken?: string
 ): Promise<AssignedIssue[]> {
   try {
-    // Gebruik de GitHub Search API net als bij PRs
     const response = await githubFetch<GitHubSearchIssuesResponse>(
-      "/search/issues?q=is:issue+assignee:@me+state:open",
+      "/search/issues?q=is:issue+assignee:@me+state:open&per_page=10",
       { method: "GET" },
       accessToken
     );
@@ -194,7 +177,6 @@ export async function getAssignedIssues(
       };
     });
   } catch (error) {
-    // In dev is een warning genoeg, geen harde error
     console.warn("Error fetching assigned issues from GitHub:", error);
     return [];
   }
@@ -202,20 +184,21 @@ export async function getAssignedIssues(
 
 export type RecentlyMergedPull = {
   id: string;
+  number: number;
   title: string;
   repo: string;
   owner: string;
   htmlUrl: string;
-  mergedAt: string;
+  mergedAt: string; // approximate (uses updated_at from search)
 };
 
 /**
  * getRecentlyMerged
  *
  * Uses the GitHub Search API:
- *   GET /search/issues?q=is:pr+author:@me+is:merged
+ *   GET /search/issues?q=is:pr+author:@me+is:merged&sort=updated&order=desc
  *
- * Returns recently merged pull requests created by the authenticated user.
+ * Note: Search API doesn't include merged_at here; mergedAt uses updated_at as an approximation.
  */
 export async function getRecentlyMerged(
   accessToken?: string
@@ -238,12 +221,11 @@ export async function getRecentlyMerged(
 
       return {
         id: String(item.id),
+        number: item.number,
         title: item.title,
         repo,
         owner,
         htmlUrl: item.html_url,
-        // Search API heeft geen expliciete merged_at in deze view,
-        // we gebruiken updated_at als benadering.
         mergedAt: item.updated_at,
       };
     });
