@@ -1,4 +1,4 @@
-// components/AuthStatus.tsx
+// FILE: components/AuthStatus.jsx
 "use client";
 
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -13,7 +13,7 @@ export function AuthStatus() {
   if (!session) {
     return (
       <button
-        onClick={() => signIn("github")}
+        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
         className="text-xs border border-neutral-700 px-3 py-1 rounded hover:bg-neutral-900"
       >
         Log in with GitHub
@@ -30,7 +30,7 @@ export function AuthStatus() {
         </span>
       </span>
       <button
-        onClick={() => signOut()}
+        onClick={() => signOut({ callbackUrl: "/" })}
         className="border border-neutral-700 px-3 py-1 rounded hover:bg-neutral-900"
       >
         Log out

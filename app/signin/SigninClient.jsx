@@ -1,14 +1,35 @@
-// app/signin/SigninClient.jsx
+// FILE: app/signin/SigninClient.jsx
 "use client";
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
+function sanitizeCallbackUrl(raw) {
+  // Default: always go to dashboard
+  if (!raw) return "/dashboard";
+
+  // Only allow relative paths. Block full URLs / external redirects.
+  // If someone passes an absolute URL to the same origin, we still prefer /dashboard.
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return "/dashboard";
+  }
+
+  // Ensure it is a safe internal path
+  if (!raw.startsWith("/")) return "/dashboard";
+  if (raw.startsWith("//")) return "/dashboard";
+
+  // Avoid sending users to landing after login (your reported behavior)
+  if (raw === "/") return "/dashboard";
+
+  return raw;
+}
+
 export default function SigninClient() {
   const params = useSearchParams();
 
-  const callbackUrl = params.get("callbackUrl") || "/dashboard";
+  const rawCallbackUrl = params.get("callbackUrl");
+  const callbackUrl = sanitizeCallbackUrl(rawCallbackUrl);
   const error = params.get("error");
 
   return (

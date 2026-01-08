@@ -1,4 +1,4 @@
-// app/dashboard/page.jsx
+// FILE: app/dashboard/page.jsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
@@ -16,9 +16,9 @@ import { AuthStatus } from "../../components/AuthStatus";
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  // ✅ Route via custom sign-in page (consistent UX)
+  // ✅ Consistent UX: redirect to custom sign-in with deterministic callback
   if (!session) {
-    redirect("/signin");
+    redirect("/signin?callbackUrl=/dashboard");
   }
 
   const accessToken = session.accessToken;
