@@ -13,6 +13,65 @@ import {
 } from "../../lib/github/dashboard";
 import { AuthStatus } from "../../components/AuthStatus";
 
+function pluralize(n, singular, plural = `${singular}s`) {
+  return n === 1 ? singular : plural;
+}
+
+function getFocusState({ prCount, issueCount, mergedCount }) {
+  // Priority: unblock others first (reviews), then owned work (issues), then shipped context (merged)
+  if (prCount > 0) {
+    return {
+      tone: "action",
+      kicker: "Start here",
+      title: `You have ${prCount} ${pluralize(
+        prCount,
+        "PR"
+      )} waiting for review`,
+      detail:
+        "Reviews unblock teammates. Clear these first, then move to assigned issues.",
+      ctaLabel: "Open review section",
+      ctaHint: "Tip: open the oldest PR first.",
+    };
+  }
+
+  if (issueCount > 0) {
+    return {
+      tone: "action",
+      kicker: "Next up",
+      title: `You have ${issueCount} assigned ${pluralize(
+        issueCount,
+        "issue"
+      )}`,
+      detail:
+        "These are owned by you. Triage quickly: close, delegate, or take the next step.",
+      ctaLabel: "Open issues section",
+      ctaHint: "Tip: comment to unblock instead of context-switching.",
+    };
+  }
+
+  if (mergedCount > 0) {
+    return {
+      tone: "calm",
+      kicker: "All clear",
+      title: "No pending reviews or assigned issues",
+      detail:
+        "You're caught up. Use the merged list as a clean log of what you shipped recently.",
+      ctaLabel: "Check merged log",
+      ctaHint: "Tip: use this as a quick daily recap.",
+    };
+  }
+
+  return {
+    tone: "calm",
+    kicker: "All clear",
+    title: "Inbox zero for GitHub",
+    detail:
+      "No pending reviews, no assigned issues, and nothing merged recently. CalmHub stays quiet when there's nothing to do.",
+    ctaLabel: "Stay calm",
+    ctaHint: "Tip: this is the intended state.",
+  };
+}
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
@@ -28,6 +87,12 @@ export default async function DashboardPage() {
     getAssignedIssues(accessToken),
     getRecentlyMerged(accessToken),
   ]);
+
+  const prCount = pullsToReview.length;
+  const issueCount = assignedIssues.length;
+  const mergedCount = recentlyMerged.length;
+
+  const focus = getFocusState({ prCount, issueCount, mergedCount });
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
@@ -75,10 +140,10 @@ export default async function DashboardPage() {
             <CommentProvider>
               <DashboardSection
                 title="Pull requests waiting for your review"
-                count={pullsToReview.length}
+                count={prCount}
                 defaultOpen={true}
               >
-                {pullsToReview.length === 0 ? (
+                {prCount === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
                     No pull requests waiting.
                   </p>
@@ -110,9 +175,9 @@ export default async function DashboardPage() {
 
               <DashboardSection
                 title="Issues assigned to you"
-                count={assignedIssues.length}
+                count={issueCount}
               >
-                {assignedIssues.length === 0 ? (
+                {issueCount === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
                     No assigned issues.
                   </p>
@@ -148,9 +213,9 @@ export default async function DashboardPage() {
 
               <DashboardSection
                 title="Recently merged by you"
-                count={recentlyMerged.length}
+                count={mergedCount}
               >
-                {recentlyMerged.length === 0 ? (
+                {mergedCount === 0 ? (
                   <p className="px-4 py-3 text-xs text-neutral-500">
                     Nothing merged yet.
                   </p>
@@ -178,32 +243,89 @@ export default async function DashboardPage() {
             </CommentProvider>
           </div>
 
-          {/* Right: focus panel */}
+          {/* Right: focus panel (contextual) */}
           <aside className="h-fit rounded-2xl border border-white/10 bg-neutral-950/40 p-5 backdrop-blur">
-            <p className="text-xs font-semibold text-neutral-100">
-              Focus panel
-            </p>
-            <p className="mt-2 text-xs text-neutral-400 leading-relaxed">
-              CalmHub reduces GitHub noise into a short list of actions. Use the
-              comment composer to respond quickly without opening GitHub tabs.
-            </p>
+            {/* Header badge */}
+            <div className="flex items-center justify-between gap-3">
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                Focus panel
+              </p>
 
-            <div className="mt-4 space-y-2 text-xs">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-neutral-200 font-medium">Tip</p>
-                <p className="mt-1 text-[11px] text-neutral-400">
-                  If a repo appears multiple times, “Last commit” is cached for
-                  a few minutes to avoid overfetching.
-                </p>
+              <div className="flex items-center gap-2 text-[11px] text-neutral-400">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                  {prCount} {pluralize(prCount, "PR")}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                  {issueCount} {pluralize(issueCount, "issue")}
+                </span>
               </div>
+            </div>
 
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            {/* Context block */}
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] text-neutral-400">{focus.kicker}</p>
+              <p className="mt-1 text-sm font-semibold tracking-tight text-neutral-100">
+                {focus.title}
+              </p>
+              <p className="mt-2 text-xs text-neutral-300 leading-relaxed">
+                {focus.detail}
+              </p>
+
+              <div className="mt-3 flex flex-col gap-2">
+                <p className="text-[11px] text-neutral-500">{focus.ctaHint}</p>
+
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="inline-flex items-center justify-center rounded-md border border-white/10 bg-neutral-950/40 px-3 py-2 text-[11px] font-medium text-neutral-100 hover:bg-white/10 transition"
+                    title="This panel is informational (no client-side scrolling)."
+                  >
+                    {focus.ctaLabel}
+                  </a>
+
+                  <a
+                    href="https://github.com/pulls/review-requested"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-md border border-white/10 bg-neutral-950/40 px-3 py-2 text-[11px] font-medium text-neutral-100 hover:bg-white/10 transition"
+                  >
+                    Open GitHub (reviews)
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips (conditional feel, but no extra calls) */}
+            <div className="mt-4 space-y-2 text-xs">
+              <div className="rounded-lg border border-white/10 bg-neutral-950/40 p-3">
                 <p className="text-neutral-200 font-medium">Security</p>
                 <p className="mt-1 text-[11px] text-neutral-400">
                   GitHub calls are performed server-side via session token. The
                   UI never talks to GitHub directly.
                 </p>
               </div>
+
+              {(prCount > 0 || issueCount > 0) && (
+                <div className="rounded-lg border border-white/10 bg-neutral-950/40 p-3">
+                  <p className="text-neutral-200 font-medium">Tip</p>
+                  <p className="mt-1 text-[11px] text-neutral-400">
+                    If a repo appears multiple times, “Last commit” is cached
+                    for a few minutes to avoid overfetching.
+                  </p>
+                </div>
+              )}
+
+              {prCount === 0 && issueCount === 0 && (
+                <div className="rounded-lg border border-white/10 bg-neutral-950/40 p-3">
+                  <p className="text-neutral-200 font-medium">Calm mode</p>
+                  <p className="mt-1 text-[11px] text-neutral-400">
+                    CalmHub stays quiet when there’s nothing requiring action.
+                    That’s the goal.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
