@@ -18,10 +18,8 @@ function pluralize(n, singular, plural = `${singular}s`) {
 }
 
 function getFocusState({ prCount, issueCount, mergedCount }) {
-  // Priority: unblock others first (reviews), then owned work (issues), then shipped context (merged)
   if (prCount > 0) {
     return {
-      tone: "action",
       kicker: "Start here",
       title: `You have ${prCount} ${pluralize(
         prCount,
@@ -29,14 +27,14 @@ function getFocusState({ prCount, issueCount, mergedCount }) {
       )} waiting for review`,
       detail:
         "Reviews unblock teammates. Clear these first, then move to assigned issues.",
-      ctaLabel: "Open review section",
-      ctaHint: "Tip: open the oldest PR first.",
+      hint: "Tip: open the oldest PR first.",
+      primaryHref: "/dashboard",
+      primaryLabel: "Review PRs (left)",
     };
   }
 
   if (issueCount > 0) {
     return {
-      tone: "action",
       kicker: "Next up",
       title: `You have ${issueCount} assigned ${pluralize(
         issueCount,
@@ -44,38 +42,38 @@ function getFocusState({ prCount, issueCount, mergedCount }) {
       )}`,
       detail:
         "These are owned by you. Triage quickly: close, delegate, or take the next step.",
-      ctaLabel: "Open issues section",
-      ctaHint: "Tip: comment to unblock instead of context-switching.",
+      hint: "Tip: comment to unblock instead of context-switching.",
+      primaryHref: "/dashboard",
+      primaryLabel: "Handle issues (left)",
     };
   }
 
   if (mergedCount > 0) {
     return {
-      tone: "calm",
       kicker: "All clear",
       title: "No pending reviews or assigned issues",
       detail:
         "You're caught up. Use the merged list as a clean log of what you shipped recently.",
-      ctaLabel: "Check merged log",
-      ctaHint: "Tip: use this as a quick daily recap.",
+      hint: "Tip: use this as a quick daily recap.",
+      primaryHref: "/dashboard",
+      primaryLabel: "Check merged log (left)",
     };
   }
 
   return {
-    tone: "calm",
     kicker: "All clear",
     title: "Inbox zero for GitHub",
     detail:
       "No pending reviews, no assigned issues, and nothing merged recently. CalmHub stays quiet when there's nothing to do.",
-    ctaLabel: "Stay calm",
-    ctaHint: "Tip: this is the intended state.",
+    hint: "Tip: this is the intended state.",
+    primaryHref: "/",
+    primaryLabel: "Back to home",
   };
 }
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  // ✅ Consistent UX: redirect to custom sign-in with deterministic callback
   if (!session) {
     redirect("/signin?callbackUrl=/dashboard");
   }
@@ -243,9 +241,8 @@ export default async function DashboardPage() {
             </CommentProvider>
           </div>
 
-          {/* Right: focus panel (contextual) */}
+          {/* Right: focus panel (contextual, server-safe) */}
           <aside className="h-fit rounded-2xl border border-white/10 bg-neutral-950/40 p-5 backdrop-blur">
-            {/* Header badge */}
             <div className="flex items-center justify-between gap-3">
               <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-neutral-200">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
@@ -262,7 +259,6 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* Context block */}
             <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-[11px] text-neutral-400">{focus.kicker}</p>
               <p className="mt-1 text-sm font-semibold tracking-tight text-neutral-100">
@@ -273,16 +269,14 @@ export default async function DashboardPage() {
               </p>
 
               <div className="mt-3 flex flex-col gap-2">
-                <p className="text-[11px] text-neutral-500">{focus.ctaHint}</p>
+                <p className="text-[11px] text-neutral-500">{focus.hint}</p>
 
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
+                    href={focus.primaryHref}
                     className="inline-flex items-center justify-center rounded-md border border-white/10 bg-neutral-950/40 px-3 py-2 text-[11px] font-medium text-neutral-100 hover:bg-white/10 transition"
-                    title="This panel is informational (no client-side scrolling)."
                   >
-                    {focus.ctaLabel}
+                    {focus.primaryLabel}
                   </a>
 
                   <a
@@ -297,7 +291,6 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* Tips (conditional feel, but no extra calls) */}
             <div className="mt-4 space-y-2 text-xs">
               <div className="rounded-lg border border-white/10 bg-neutral-950/40 p-3">
                 <p className="text-neutral-200 font-medium">Security</p>
